@@ -100,7 +100,7 @@ export function AnimalSoundsGame() {
               <motion.button
                 key={`${animal.id}-${index}`}
                 type="button"
-                aria-label="Animal"
+                aria-label={`Tap the ${animal.id}`}
                 onClick={(event) => handleAnimalTap(index, event)}
                 disabled={solved}
                 className="relative flex aspect-square min-h-20 min-w-20 items-center justify-center rounded-[2rem] shadow-lg touch-manipulation select-none"
