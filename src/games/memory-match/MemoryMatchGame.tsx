@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { motion } from 'framer-motion'
 import { GameShell } from '../../shared/GameShell'
 import { Confetti } from '../../shared/Confetti'
@@ -74,7 +74,7 @@ function DuckIcon({ className }: IconProps) {
   )
 }
 
-const ICON_COMPONENTS: Record<IconKey, (props: IconProps) => JSX.Element> = {
+const ICON_COMPONENTS: Record<IconKey, (props: IconProps) => ReactElement> = {
   dino: DinoIcon,
   dog: DogIcon,
   duck: DuckIcon,
