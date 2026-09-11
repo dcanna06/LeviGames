@@ -201,10 +201,6 @@ export function CountingDinosGame() {
           })}
         </div>
 
-        <p className="mt-4 text-center text-xl font-bold text-sky-800/70">
-          Tap each dinosaur!
-        </p>
-
         <AnimatePresence>
           {celebrating && (
             <motion.div
@@ -215,7 +211,9 @@ export function CountingDinosGame() {
               className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-white/70 backdrop-blur-sm"
             >
               <span className="text-9xl font-black text-emerald-600 drop-shadow-sm">{total}</span>
-              <span className="text-3xl font-bold text-emerald-700">Yay!</span>
+              <span className="text-6xl" aria-hidden="true">
+                🎉
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
