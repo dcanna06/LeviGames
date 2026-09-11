@@ -22,10 +22,9 @@ export function LiftStand() {
 }
 
 /**
- * The cab silhouette is deliberately traced just outside the windshield
- * overlay's own trapezoid (see WS_POINTS in parts.tsx: 150,58 250,58 268,118
- * 132,118) so the WindshieldPart problem/fix graphic sits framed inside a
- * real roofline instead of floating disconnected above the body.
+ * Cab silhouette for the boxier vehicles, traced just outside the windshield
+ * overlay's trapezoid (WS_POINTS in parts.tsx) so the WindshieldPart graphic
+ * sits framed inside a real roofline rather than floating above the body.
  */
 const CAB_OUTLINE = 'M110,155 L124,120 L140,48 L260,48 L276,120 L290,155 Z'
 
