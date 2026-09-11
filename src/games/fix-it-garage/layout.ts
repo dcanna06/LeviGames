@@ -34,10 +34,10 @@ function zone(x: number, y: number, w: number, h: number): ZoneBox {
 export const ZONES: Record<ZoneKey, ZoneBox> = {
   wheel: zone(50, 120, 130, 110),
   tire: zone(220, 120, 130, 110),
-  windshield: zone(100, 15, 200, 120),
-  bumper: zone(325, 115, 75, 95),
-  spoiler: zone(10, 0, 130, 80),
-  flag: zone(145, 0, 110, 60),
+  windshield: zone(80, 40, 220, 90),
+  bumper: zone(320, 135, 80, 80),
+  spoiler: zone(45, 22, 115, 100),
+  flag: zone(160, 0, 95, 60),
 }
 
 export function zoneStyle(box: ZoneBox): CSSProperties {

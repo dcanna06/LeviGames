@@ -11,18 +11,19 @@ const WHEEL_CX = 115
 const WHEEL_CY = 175
 const TIRE_CX = 285
 const TIRE_CY = 175
-const WS_POINTS = '150,58 250,58 268,118 132,118'
-const BUMPER_X = 352
-const BUMPER_Y = 156
-const BUMPER_W = 38
-const BUMPER_H = 24
+const WHEEL_R = 29
+const WS_POINTS = '150,56 245,56 286,116 92,116'
+const BUMPER_X = 348
+const BUMPER_Y = 150
+const BUMPER_W = 24
+const BUMPER_H = 50
 
 /** Missing wheel (broken) <-> wheel spun on (fixed) — wrench. */
 export function WheelPart({ ok }: { ok: boolean }) {
   if (!ok) {
     return (
       <g aria-hidden="true">
-        <circle cx={WHEEL_CX} cy={WHEEL_CY} r="26" fill="none" stroke="#9ca3af" strokeWidth="4" strokeDasharray="8 7" />
+        <circle cx={WHEEL_CX} cy={WHEEL_CY} r={WHEEL_R} fill="none" stroke="#9ca3af" strokeWidth="4" strokeDasharray="8 7" />
       </g>
     )
   }
@@ -34,8 +35,8 @@ export function WheelPart({ ok }: { ok: boolean }) {
       transition={{ type: 'spring', stiffness: 110, damping: 14 }}
       style={{ transformOrigin: `${WHEEL_CX}px ${WHEEL_CY}px` }}
     >
-      <circle cx={WHEEL_CX} cy={WHEEL_CY} r="26" fill="#1f2937" />
-      <circle cx={WHEEL_CX} cy={WHEEL_CY} r="11" fill="#d1d5db" />
+      <circle cx={WHEEL_CX} cy={WHEEL_CY} r={WHEEL_R} fill="#1f2937" />
+      <circle cx={WHEEL_CX} cy={WHEEL_CY} r="12" fill="#d1d5db" />
       <circle cx={WHEEL_CX} cy={WHEEL_CY} r="4" fill="#4b5563" />
     </motion.g>
   )
@@ -46,8 +47,8 @@ export function TirePart({ ok }: { ok: boolean }) {
   if (!ok) {
     return (
       <g aria-hidden="true">
-        <ellipse cx={TIRE_CX} cy="193" rx="30" ry="12" fill="#374151" />
-        <ellipse cx={TIRE_CX} cy="193" rx="13" ry="5" fill="#9ca3af" />
+        <ellipse cx={TIRE_CX} cy="192" rx="33" ry="13" fill="#374151" />
+        <ellipse cx={TIRE_CX} cy="192" rx="14" ry="5" fill="#9ca3af" />
       </g>
     )
   }
@@ -57,10 +58,10 @@ export function TirePart({ ok }: { ok: boolean }) {
       initial={{ scaleY: 0.4, scaleX: 1.2, opacity: 0.6 }}
       animate={{ scaleY: 1, scaleX: 1, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 12 }}
-      style={{ transformOrigin: `${TIRE_CX}px 193px` }}
+      style={{ transformOrigin: `${TIRE_CX}px 192px` }}
     >
-      <circle cx={TIRE_CX} cy={TIRE_CY} r="26" fill="#1f2937" />
-      <circle cx={TIRE_CX} cy={TIRE_CY} r="11" fill="#d1d5db" />
+      <circle cx={TIRE_CX} cy={TIRE_CY} r={WHEEL_R} fill="#1f2937" />
+      <circle cx={TIRE_CX} cy={TIRE_CY} r="12" fill="#d1d5db" />
       <circle cx={TIRE_CX} cy={TIRE_CY} r="4" fill="#4b5563" />
     </motion.g>
   )
@@ -73,7 +74,7 @@ export function WindshieldPart({ ok }: { ok: boolean }) {
       <g aria-hidden="true">
         <polygon points={WS_POINTS} fill="#9ca3af" stroke="#6b7280" strokeWidth="3" />
         <path
-          d="M148,78 L232,102 M158,98 L238,72"
+          d="M120,90 L244,106 M132,108 L252,76"
           stroke="#6b7280"
           strokeWidth="3"
           strokeLinecap="round"
@@ -86,7 +87,7 @@ export function WindshieldPart({ ok }: { ok: boolean }) {
     <motion.g aria-hidden="true" initial={{ opacity: 0.3 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
       <polygon points={WS_POINTS} fill="#bae6fd" stroke="#38bdf8" strokeWidth="3" />
       <motion.polygon
-        points="150,58 178,58 196,118 168,118"
+        points="150,56 178,56 204,116 176,116"
         fill="#ffffff"
         opacity="0.5"
         initial={{ x: -30 }}
@@ -101,24 +102,22 @@ export function WindshieldPart({ ok }: { ok: boolean }) {
 export function BumperPart({ ok }: { ok: boolean }) {
   if (!ok) {
     return (
-      <g aria-hidden="true" transform={`rotate(10 ${BUMPER_X + BUMPER_W / 2} ${BUMPER_Y + BUMPER_H / 2})`}>
-        <rect x={BUMPER_X} y={BUMPER_Y} width={BUMPER_W} height={BUMPER_H} rx="7" fill="#78716c" opacity="0.9" />
+      <g aria-hidden="true" transform={`rotate(22 ${BUMPER_X} ${BUMPER_Y + BUMPER_H})`}>
+        <rect x={BUMPER_X} y={BUMPER_Y} width={BUMPER_W} height={BUMPER_H} rx="9" fill="#78716c" opacity="0.9" />
       </g>
     )
   }
   return (
-    <motion.rect
+    <motion.g
       aria-hidden="true"
-      y={BUMPER_Y}
-      width={BUMPER_W}
-      height={BUMPER_H}
-      rx="7"
-      fill="#292524"
-      initial={{ x: BUMPER_X + 22, rotate: -16, opacity: 0.5 }}
-      animate={{ x: BUMPER_X, rotate: 0, opacity: 1 }}
+      initial={{ x: 16, rotate: -14, opacity: 0.5 }}
+      animate={{ x: 0, rotate: 0, opacity: 1 }}
       transition={{ type: 'spring', stiffness: 480, damping: 13 }}
       style={{ transformOrigin: `${BUMPER_X + BUMPER_W / 2}px ${BUMPER_Y + BUMPER_H / 2}px` }}
-    />
+    >
+      <rect x={BUMPER_X} y={BUMPER_Y} width={BUMPER_W} height={BUMPER_H} rx="9" fill="#27272a" />
+      <rect x={BUMPER_X + 2} y={BUMPER_Y + 34} width={BUMPER_W - 4} height="5" rx="2.5" fill="#dc2626" />
+    </motion.g>
   )
 }
 
@@ -136,13 +135,15 @@ export function SpoilerPart({ color }: { color: SpoilerColor }) {
       initial={{ scale: 0.3, opacity: 0, y: -10 }}
       animate={{ scale: 1, opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 420, damping: 14 }}
-      style={{ transformOrigin: '75px 45px' }}
+      style={{ transformOrigin: '98px 40px' }}
     >
-      {/* angled struts mounting the wing to the trunk */}
-      <path d="M50,63 L58,38 L64,38 L59,63 Z" fill={SPOILER_FILL[color]} />
-      <path d="M100,63 L92,38 L86,38 L91,63 Z" fill={SPOILER_FILL[color]} />
-      {/* tapered aerodynamic wing blade */}
-      <path d="M28,38 Q75,22 122,38 L122,46 Q75,32 28,46 Z" fill={SPOILER_FILL[color]} />
+      {/* uprights planted into the hatch, tall at the rear, short at the roof join */}
+      <path d="M84,56 L96,56 L106,86 L94,90 Z" fill={SPOILER_FILL[color]} />
+      <path d="M128,56 L140,56 L142,62 L130,66 Z" fill={SPOILER_FILL[color]} />
+      {/* wing blade sitting on the roof's trailing edge, cantilevered over the hatch */}
+      <path d="M70,46 Q110,38 152,46 L152,58 Q110,50 70,58 Z" fill={SPOILER_FILL[color]} />
+      <rect x="66" y="40" width="6" height="24" rx="2" fill={SPOILER_FILL[color]} />
+      <rect x="150" y="40" width="6" height="24" rx="2" fill={SPOILER_FILL[color]} />
     </motion.g>
   )
 }
@@ -154,10 +155,10 @@ export function FlagPart({ color }: { color: FlagColor }) {
       initial={{ scale: 0.3, opacity: 0, rotate: -20 }}
       animate={{ scale: 1, opacity: 1, rotate: 0 }}
       transition={{ type: 'spring', stiffness: 420, damping: 14 }}
-      style={{ transformOrigin: '195px 45px' }}
+      style={{ transformOrigin: '195px 46px' }}
     >
-      <rect x="192" y="5" width="5" height="42" fill="#78716c" />
-      <path d="M197,8 L232,18 L197,30 Z" fill={FLAG_FILL[color]} />
+      <rect x="192" y="6" width="5" height="42" fill="#78716c" />
+      <path d="M197,9 L232,19 L197,31 Z" fill={FLAG_FILL[color]} />
     </motion.g>
   )
 }
@@ -166,9 +167,11 @@ export function FlagPart({ color }: { color: FlagColor }) {
 export function SpoilerIcon({ color, className }: { color: SpoilerColor; className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <path d="M22,66 L30,40 L36,40 L30,66 Z" fill={SPOILER_FILL[color]} />
-      <path d="M78,66 L70,40 L64,40 L70,66 Z" fill={SPOILER_FILL[color]} />
-      <path d="M8,40 Q50,24 92,40 L92,49 Q50,35 8,49 Z" fill={SPOILER_FILL[color]} />
+      <path d="M28,48 L40,48 L38,80 L26,80 Z" fill={SPOILER_FILL[color]} />
+      <path d="M60,48 L72,48 L74,80 L62,80 Z" fill={SPOILER_FILL[color]} />
+      <path d="M10,36 Q50,26 90,36 L90,48 Q50,38 10,48 Z" fill={SPOILER_FILL[color]} />
+      <rect x="6" y="28" width="6" height="26" rx="2" fill={SPOILER_FILL[color]} />
+      <rect x="88" y="28" width="6" height="26" rx="2" fill={SPOILER_FILL[color]} />
     </svg>
   )
 }
