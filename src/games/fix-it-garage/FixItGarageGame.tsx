@@ -7,40 +7,34 @@ import { Confetti } from '../../shared/Confetti'
 import { useProgress } from '../../shared/useProgress'
 import { sfx, unlockAudio } from '../../shared/audio'
 import { CheckeredFlagIcon } from './icons'
-import { VEHICLE_BODIES, VEHICLE_TYPES, LiftStand, type VehicleType } from './vehicles'
+import { GarageBackdrop, VEHICLE_BODIES, VEHICLE_TYPES, type VehicleType } from './vehicles'
+import { Mechanic, ToolChest } from './mechanic'
 import {
   WheelPart,
   TirePart,
   WindshieldPart,
   BumperPart,
-  SpoilerPart,
-  FlagPart,
-  SpoilerIcon,
-  FlagIcon,
+  WingPart,
+  DecalPart,
+  WingIcon,
+  DecalIcon,
   PART_ITEMS,
   type PartItemDef,
-  type SpoilerColor,
-  type FlagColor,
+  type WingColor,
+  type DecalColor,
 } from './parts'
 import { TOOLS, type ToolDef } from './tools'
 import { ALL_PROBLEMS, ZONES, zoneStyle, VIEW_W, VIEW_H, type ProblemKey } from './layout'
 
 /**
- * Fix-It Garage: a vehicle sits on a lift with 2-4 broken parts. Drag the
- * matching tool onto a broken part to fix it (wrong tool near it does
- * nothing — no penalty, just try again). A parts tray lets the child freely
- * customize the vehicle with cosmetic color options. A checkered-flag
- * button always lets the child send the vehicle off, whether or not
- * everything is fixed; fixing everything also triggers it automatically.
+ * Fix-It Garage: a car sits on the lift with 2-4 broken parts and a mechanic
+ * standing by. Drag the matching tool onto a broken part to fix it (the wrong
+ * tool simply does nothing — no penalty, just try again). A parts tray adds
+ * cosmetic extras, and the checkered flag sends the car off at any time.
  *
  * Deviation from the spec: "hood popped open" is skipped as a problem type
- * since the spec gives it no matching tool/sound — only the four clearly
- * specified pairs (wrench/wheel, pump/tire, hose/windshield, hammer/bumper)
- * are used. The cosmetic parts tray is scoped to two part types (a roof
- * spoiler and an antenna flag), each in two colors, rather than the full
- * tyres+doors+bumpers+hood list, to keep the build focused — spoiler/flag
- * were chosen (over cosmetic tyres) specifically so they don't visually
- * collide with the wheel/tire problem slots.
+ * since the spec gives it no matching tool or sound; only the four clearly
+ * specified pairs are used (wrench/wheel, pump/tyre, hose/glass, hammer/bumper).
  */
 
 type DriveState = 'idle' | 'rev' | 'out' | 'in'
@@ -49,7 +43,6 @@ function randomVehicleType(): VehicleType {
   return VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)]
 }
 
-/** Picks 2-4 of the 4 problems to be broken; the rest start already fine. */
 function randomFixedState(): Record<ProblemKey, boolean> {
   const shuffled = [...ALL_PROBLEMS].sort(() => Math.random() - 0.5)
   const count = 2 + Math.floor(Math.random() * 3)
@@ -80,7 +73,7 @@ type DraggableItemProps = {
   children: ReactNode
 }
 
-/** A tray item that springs back to its tray spot unless dropped on a matching zone. */
+/** A tray item that springs back to its slot unless dropped on a matching zone. */
 function DraggableItem({ ariaLabel, bg, onDrop, children }: DraggableItemProps) {
   return (
     <motion.div
@@ -107,11 +100,12 @@ export function FixItGarageGame() {
   const [vehicleType, setVehicleType] = useState<VehicleType>(() => randomVehicleType())
   const [vehicleKey, setVehicleKey] = useState(0)
   const [fixed, setFixed] = useState<Record<ProblemKey, boolean>>(() => randomFixedState())
-  const [spoilerColor, setSpoilerColor] = useState<SpoilerColor | null>(null)
-  const [flagColor, setFlagColor] = useState<FlagColor | null>(null)
+  const [wingColor, setWingColor] = useState<WingColor | null>(null)
+  const [decalColor, setDecalColor] = useState<DecalColor | null>(null)
   const [driveState, setDriveState] = useState<DriveState>('idle')
   const [confettiTrigger, setConfettiTrigger] = useState(0)
   const [confettiOrigin, setConfettiOrigin] = useState({ x: 50, y: 50 })
+  const [fixPulse, setFixPulse] = useState(0)
 
   const driveStateRef = useRef<DriveState>('idle')
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
@@ -120,8 +114,8 @@ export function FixItGarageGame() {
   const tireZoneRef = useRef<HTMLDivElement>(null)
   const windshieldZoneRef = useRef<HTMLDivElement>(null)
   const bumperZoneRef = useRef<HTMLDivElement>(null)
-  const spoilerZoneRef = useRef<HTMLDivElement>(null)
-  const flagZoneRef = useRef<HTMLDivElement>(null)
+  const wingZoneRef = useRef<HTMLDivElement>(null)
+  const decalZoneRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     return () => {
@@ -147,7 +141,7 @@ export function FixItGarageGame() {
     setConfettiTrigger((n) => n + 1)
   }, [])
 
-  /** Rev bounce, honk + drive off screen, swap in a fresh vehicle from the other side. */
+  /** Rev bounce, honk, drive off screen, then roll a fresh vehicle in. */
   const driveOff = useCallback(() => {
     if (driveStateRef.current !== 'idle') return
     driveStateRef.current = 'rev'
@@ -166,8 +160,8 @@ export function FixItGarageGame() {
     const t2 = setTimeout(() => {
       setVehicleType(randomVehicleType())
       setFixed(randomFixedState())
-      setSpoilerColor(null)
-      setFlagColor(null)
+      setWingColor(null)
+      setDecalColor(null)
       setVehicleKey((k) => k + 1)
       driveStateRef.current = 'in'
       setDriveState('in')
@@ -181,7 +175,7 @@ export function FixItGarageGame() {
     timeoutsRef.current.push(t1, t2, t3)
   }, [addSticker])
 
-  // Auto drive-off once every active problem on this vehicle is fixed.
+  // Auto drive-off once every problem on this vehicle is fixed.
   useEffect(() => {
     const allFixed = ALL_PROBLEMS.every((problem) => fixed[problem])
     if (allFixed && driveStateRef.current === 'idle') {
@@ -197,49 +191,51 @@ export function FixItGarageGame() {
       unlockAudio()
       sfx[tool.sound]()
       setFixed((prev) => ({ ...prev, [tool.problem]: true }))
+      setFixPulse((n) => n + 1)
       fireConfettiAt(zoneRef)
     },
     [fixed, getProblemZoneRef, fireConfettiAt],
   )
 
   const handlePartDrop = useCallback((item: PartItemDef, point: { x: number; y: number }) => {
-    if (item.kind === 'spoiler') {
-      if (!pointInZone(point, spoilerZoneRef)) return
+    if (item.kind === 'wing') {
+      if (!pointInZone(point, wingZoneRef)) return
       unlockAudio()
       sfx.partClick()
-      setSpoilerColor(item.color)
+      setWingColor(item.color)
     } else {
-      if (!pointInZone(point, flagZoneRef)) return
+      if (!pointInZone(point, decalZoneRef)) return
       unlockAudio()
       sfx.partClick()
-      setFlagColor(item.color)
+      setDecalColor(item.color)
     }
+    setFixPulse((n) => n + 1)
   }, [])
 
-  const removeSpoiler = useCallback(() => {
-    if (!spoilerColor) return
+  const removeWing = useCallback(() => {
+    if (!wingColor) return
     unlockAudio()
     sfx.partPop()
-    setSpoilerColor(null)
-  }, [spoilerColor])
+    setWingColor(null)
+  }, [wingColor])
 
-  const removeFlag = useCallback(() => {
-    if (!flagColor) return
+  const removeDecal = useCallback(() => {
+    if (!decalColor) return
     unlockAudio()
     sfx.partPop()
-    setFlagColor(null)
-  }, [flagColor])
+    setDecalColor(null)
+  }, [decalColor])
 
   const Body = VEHICLE_BODIES[vehicleType]
 
-  const stageAnimate =
+  const carAnimate =
     driveState === 'rev'
       ? { x: [0, -10, 10, -6, 0], scale: [1, 1.03, 1, 1.02, 1] }
       : driveState === 'out'
-        ? { x: 520 }
+        ? { x: 620 }
         : { x: 0 }
 
-  const stageTransition =
+  const carTransition =
     driveState === 'rev'
       ? { duration: 0.28, ease: 'easeInOut' as const }
       : driveState === 'out'
@@ -253,7 +249,7 @@ export function FixItGarageGame() {
       <div className="relative flex min-h-screen w-full flex-col items-center px-4 pb-6 pt-24">
         <div className="fixed right-4 top-4 z-40">
           <BigButton
-            ariaLabel="All done, drive the vehicle off"
+            ariaLabel="All done, drive the car off"
             onClick={driveOff}
             idle="bounce"
             disabled={driveState !== 'idle'}
@@ -263,55 +259,49 @@ export function FixItGarageGame() {
           </BigButton>
         </div>
 
-        <div className="flex w-full max-w-xl flex-1 items-center justify-center py-4">
+        <div className="flex w-full max-w-2xl flex-1 items-center justify-center py-4">
           <div className="relative w-full" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
-            <motion.div
-              key={vehicleKey}
-              className="absolute inset-0"
-              initial={driveState === 'in' ? { x: -520 } : false}
-              animate={stageAnimate}
-              transition={stageTransition}
+            <svg
+              viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+              className="absolute inset-0 h-full w-full overflow-hidden rounded-[1.5rem]"
+              preserveAspectRatio="xMidYMid meet"
             >
-              <svg
-                viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-                className="absolute inset-0 h-full w-full"
-                preserveAspectRatio="xMidYMid meet"
-              >
-                <LiftStand />
+              <GarageBackdrop />
+              <ToolChest />
+
+              <motion.g key={vehicleKey} initial={driveState === 'in' ? { x: -620 } : false} animate={carAnimate} transition={carTransition}>
                 <Body />
                 <BumperPart ok={fixed.bumper} />
+                <WindshieldPart ok={fixed.windshield} />
+                {wingColor && <WingPart color={wingColor} />}
+                {decalColor && <DecalPart color={decalColor} />}
                 <WheelPart ok={fixed.wheel} />
                 <TirePart ok={fixed.tire} />
-                <WindshieldPart ok={fixed.windshield} />
-                {spoilerColor && <SpoilerPart color={spoilerColor} />}
-                {flagColor && <FlagPart color={flagColor} />}
-              </svg>
+              </motion.g>
 
-              <div ref={wheelZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.wheel)} />
-              <div ref={tireZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.tire)} />
-              <div
-                ref={windshieldZoneRef}
-                className="pointer-events-none absolute"
-                style={zoneStyle(ZONES.windshield)}
-              />
-              <div ref={bumperZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.bumper)} />
-              <div
-                ref={spoilerZoneRef}
-                role="button"
-                aria-label="Spoiler on the vehicle, tap to remove"
-                className="absolute cursor-pointer touch-manipulation"
-                style={zoneStyle(ZONES.spoiler)}
-                onClick={removeSpoiler}
-              />
-              <div
-                ref={flagZoneRef}
-                role="button"
-                aria-label="Flag on the vehicle, tap to remove"
-                className="absolute cursor-pointer touch-manipulation"
-                style={zoneStyle(ZONES.flag)}
-                onClick={removeFlag}
-              />
-            </motion.div>
+              <Mechanic pulse={fixPulse} />
+            </svg>
+
+            <div ref={wheelZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.wheel)} />
+            <div ref={tireZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.tire)} />
+            <div ref={windshieldZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.windshield)} />
+            <div ref={bumperZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.bumper)} />
+            <div
+              ref={wingZoneRef}
+              role="button"
+              aria-label="Wing on the car, tap to take it off"
+              className="absolute cursor-pointer touch-manipulation"
+              style={zoneStyle(ZONES.wing)}
+              onClick={removeWing}
+            />
+            <div
+              ref={decalZoneRef}
+              role="button"
+              aria-label="Number sticker on the car, tap to take it off"
+              className="absolute cursor-pointer touch-manipulation"
+              style={zoneStyle(ZONES.decal)}
+              onClick={removeDecal}
+            />
           </div>
         </div>
 
@@ -320,14 +310,14 @@ export function FixItGarageGame() {
             {PART_ITEMS.map((item) => (
               <DraggableItem
                 key={item.id}
-                ariaLabel={item.kind === 'spoiler' ? 'Spoiler' : 'Flag'}
+                ariaLabel={item.kind === 'wing' ? 'Wing' : 'Number sticker'}
                 bg={item.bg}
                 onDrop={(point) => handlePartDrop(item, point)}
               >
-                {item.kind === 'spoiler' ? (
-                  <SpoilerIcon color={item.color} className="h-14 w-14" />
+                {item.kind === 'wing' ? (
+                  <WingIcon color={item.color} className="h-14 w-14" />
                 ) : (
-                  <FlagIcon color={item.color} className="h-14 w-14" />
+                  <DecalIcon color={item.color} className="h-14 w-14" />
                 )}
               </DraggableItem>
             ))}

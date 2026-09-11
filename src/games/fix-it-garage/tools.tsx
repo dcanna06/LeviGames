@@ -2,68 +2,63 @@ import type { ReactElement } from 'react'
 import type { SfxName } from '../../shared/audio'
 import type { ProblemKey } from './layout'
 
-/** Simple flat tool icons for the tool tray. */
+/** Garage tools, drawn as recognisable workshop kit rather than abstract shapes. */
 
 type IconProps = { className?: string }
 
+const STEEL = '#94a3b8'
+const STEEL_EDGE = '#475569'
+
+/** Combination spanner: ring end one side, open jaw the other. */
 export function WrenchIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <path
-        d="M66 14a20 20 0 0 0-27 24L14 63a8 8 0 0 0 11 11l25-25a20 20 0 0 0 27-24L64 38 52 26z"
-        fill="#64748b"
-        stroke="#334155"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
+      <g transform="rotate(-35 50 50)" stroke={STEEL_EDGE} strokeWidth="3" strokeLinejoin="round">
+        <rect x="43" y="24" width="14" height="54" fill={STEEL} />
+        <circle cx="50" cy="22" r="15" fill={STEEL} />
+        <path d="M 38,76 L 38,92 L 46,92 L 46,84 L 54,84 L 54,92 L 62,92 L 62,76 Z" fill={STEEL} />
+      </g>
+      <circle cx="62" cy="43" r="7" fill="#e2e8f0" transform="rotate(-35 50 50)" />
     </svg>
   )
 }
 
+/** Foot pump with a pressure gauge and an air line. */
 export function PumpIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      {/* foot base */}
-      <ellipse cx="32" cy="88" rx="18" ry="6" fill="#57534e" />
-      {/* barrel */}
-      <rect x="24" y="30" width="16" height="56" rx="6" fill="#f97316" stroke="#c2410c" strokeWidth="3" />
-      {/* T handle */}
-      <rect x="12" y="14" width="40" height="10" rx="5" fill="#78716c" stroke="#44403c" strokeWidth="2" />
-      <rect x="27" y="20" width="10" height="12" fill="#78716c" />
-      {/* hose to nozzle */}
-      <path d="M40 78 Q66 82 70 60" stroke="#44403c" strokeWidth="6" fill="none" strokeLinecap="round" />
-      {/* pressure gauge */}
-      <circle cx="72" cy="52" r="9" fill="#fde68a" stroke="#b45309" strokeWidth="3" />
-      <circle cx="72" cy="52" r="2" fill="#b45309" />
+      <ellipse cx="34" cy="88" rx="20" ry="6" fill="#57534e" />
+      <rect x="26" y="30" width="16" height="56" rx="5" fill="#f97316" stroke="#c2410c" strokeWidth="3" />
+      <rect x="14" y="14" width="40" height="10" rx="5" fill="#78716c" stroke="#44403c" strokeWidth="2" />
+      <rect x="29" y="20" width="10" height="12" fill="#78716c" />
+      <path d="M 42,78 Q 68,82 72,58" stroke="#44403c" strokeWidth="6" fill="none" strokeLinecap="round" />
+      <circle cx="74" cy="50" r="11" fill="#fef3c7" stroke="#b45309" strokeWidth="3" />
+      <path d="M 74,50 L 79,44" stroke="#b45309" strokeWidth="3" strokeLinecap="round" />
     </svg>
   )
 }
 
+/** Coiled wash hose with a trigger nozzle. */
 export function HoseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      {/* coiled hose */}
-      <path d="M12 84 Q8 40 40 34 Q66 30 60 54" stroke="#22c55e" strokeWidth="10" fill="none" strokeLinecap="round" />
-      {/* spray-gun handle */}
-      <rect x="56" y="44" width="26" height="14" rx="5" fill="#16a34a" transform="rotate(24 69 51)" />
-      <rect x="66" y="54" width="12" height="18" rx="4" fill="#15803d" transform="rotate(24 72 63)" />
-      {/* water droplets */}
-      <circle cx="90" cy="34" r="3.5" fill="#38bdf8" />
-      <circle cx="96" cy="46" r="3.5" fill="#38bdf8" />
-      <circle cx="88" cy="56" r="3.5" fill="#38bdf8" />
+      <path d="M 12,86 Q 6,42 38,34 Q 64,28 58,52" stroke="#16a34a" strokeWidth="10" fill="none" strokeLinecap="round" />
+      <rect x="54" y="42" width="28" height="14" rx="5" fill="#15803d" transform="rotate(22 68 49)" />
+      <rect x="62" y="52" width="12" height="20" rx="4" fill="#166534" transform="rotate(22 68 62)" />
+      <circle cx="90" cy="32" r="4" fill="#38bdf8" />
+      <circle cx="96" cy="44" r="4" fill="#38bdf8" />
+      <circle cx="88" cy="54" r="4" fill="#38bdf8" />
     </svg>
   )
 }
 
+/** Claw hammer. */
 export function HammerIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      {/* diagonal handle */}
-      <rect x="18" y="59" width="58" height="13" rx="6" fill="#a16207" transform="rotate(-38 47 65)" />
-      {/* head */}
-      <rect x="56" y="16" width="34" height="26" rx="5" fill="#71717a" stroke="#3f3f46" strokeWidth="3" />
-      {/* claw notch */}
-      <path d="M56 18 Q44 18 44 29 Q44 40 56 40" fill="none" stroke="#3f3f46" strokeWidth="4" />
+      <rect x="16" y="58" width="60" height="14" rx="6" fill="#a16207" transform="rotate(-38 46 65)" />
+      <rect x="54" y="14" width="36" height="28" rx="6" fill="#71717a" stroke="#3f3f46" strokeWidth="3" />
+      <path d="M 54,16 Q 40,16 40,28 Q 40,40 54,40" fill="none" stroke="#3f3f46" strokeWidth="5" strokeLinecap="round" />
     </svg>
   )
 }
