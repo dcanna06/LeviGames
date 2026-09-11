@@ -21,16 +21,22 @@ export function LiftStand() {
   )
 }
 
+/**
+ * The cab silhouette is deliberately traced just outside the windshield
+ * overlay's own trapezoid (see WS_POINTS in parts.tsx: 150,58 250,58 268,118
+ * 132,118) so the WindshieldPart problem/fix graphic sits framed inside a
+ * real roofline instead of floating disconnected above the body.
+ */
+const CAB_OUTLINE = 'M110,155 L124,120 L140,48 L260,48 L276,120 L290,155 Z'
+
 export function CarBody() {
   return (
     <g aria-hidden="true">
-      <rect x="55" y="150" width="300" height="55" rx="24" fill="#ef4444" />
-      <path
-        d="M128,150 L158,96 Q168,88 182,88 L248,88 Q262,88 272,96 L302,150 Z"
-        fill="#dc2626"
-      />
-      <circle cx="352" cy="170" r="8" fill="#fde68a" />
-      <rect x="65" y="188" width="20" height="10" rx="3" fill="#7f1d1d" opacity="0.7" />
+      <rect x="55" y="155" width="300" height="50" rx="18" fill="#ef4444" />
+      <path d={CAB_OUTLINE} fill="#dc2626" />
+      <line x1="200" y1="155" x2="200" y2="48" stroke="#7f1d1d" strokeWidth="4" opacity="0.5" />
+      <circle cx="343" cy="172" r="7" fill="#fde68a" />
+      <rect x="60" y="188" width="22" height="11" rx="4" fill="#7f1d1d" opacity="0.6" />
     </g>
   )
 }
@@ -38,10 +44,10 @@ export function CarBody() {
 export function TruckBody() {
   return (
     <g aria-hidden="true">
-      <rect x="55" y="150" width="300" height="55" rx="16" fill="#3b82f6" />
-      <rect x="118" y="86" width="150" height="66" rx="12" fill="#2563eb" />
-      <rect x="60" y="122" width="46" height="28" rx="6" fill="#1d4ed8" />
-      <circle cx="352" cy="170" r="8" fill="#fde68a" />
+      <rect x="55" y="155" width="300" height="50" rx="10" fill="#3b82f6" />
+      <rect x="55" y="86" width="300" height="70" rx="10" fill="#2563eb" />
+      <path d={CAB_OUTLINE} fill="#1d4ed8" />
+      <circle cx="343" cy="172" r="7" fill="#fde68a" />
     </g>
   )
 }
@@ -49,11 +55,12 @@ export function TruckBody() {
 export function DiggerBody() {
   return (
     <g aria-hidden="true">
-      <rect x="55" y="160" width="300" height="46" rx="14" fill="#eab308" />
-      <rect x="118" y="92" width="150" height="68" rx="14" fill="#ca8a04" />
+      <rect x="55" y="160" width="300" height="46" rx="10" fill="#eab308" />
+      <rect x="55" y="90" width="300" height="70" rx="10" fill="#ca8a04" />
+      <path d={CAB_OUTLINE} fill="#a16207" />
       <path d="M248,112 L326,74 L356,92 L296,132 Z" fill="#a16207" />
       <path d="M352,82 L382,96 L366,122 L340,106 Z" fill="#78350f" />
-      <circle cx="352" cy="170" r="8" fill="#fde68a" />
+      <circle cx="343" cy="172" r="7" fill="#fde68a" />
     </g>
   )
 }

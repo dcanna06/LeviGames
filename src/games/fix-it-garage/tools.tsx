@@ -23,10 +23,18 @@ export function WrenchIcon({ className }: IconProps) {
 export function PumpIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <rect x="28" y="30" width="18" height="46" rx="4" fill="#f97316" stroke="#c2410c" strokeWidth="3" />
-      <rect x="21" y="17" width="32" height="15" rx="4" fill="#fb923c" stroke="#c2410c" strokeWidth="3" />
-      <path d="M46 74 Q70 78 74 58" stroke="#78716c" strokeWidth="6" fill="none" strokeLinecap="round" />
-      <circle cx="76" cy="55" r="6" fill="#78716c" />
+      {/* foot base */}
+      <ellipse cx="32" cy="88" rx="18" ry="6" fill="#57534e" />
+      {/* barrel */}
+      <rect x="24" y="30" width="16" height="56" rx="6" fill="#f97316" stroke="#c2410c" strokeWidth="3" />
+      {/* T handle */}
+      <rect x="12" y="14" width="40" height="10" rx="5" fill="#78716c" stroke="#44403c" strokeWidth="2" />
+      <rect x="27" y="20" width="10" height="12" fill="#78716c" />
+      {/* hose to nozzle */}
+      <path d="M40 78 Q66 82 70 60" stroke="#44403c" strokeWidth="6" fill="none" strokeLinecap="round" />
+      {/* pressure gauge */}
+      <circle cx="72" cy="52" r="9" fill="#fde68a" stroke="#b45309" strokeWidth="3" />
+      <circle cx="72" cy="52" r="2" fill="#b45309" />
     </svg>
   )
 }
@@ -34,11 +42,15 @@ export function PumpIcon({ className }: IconProps) {
 export function HoseIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <path d="M14 74 Q18 28 55 34 Q76 38 70 56" stroke="#22c55e" strokeWidth="10" fill="none" strokeLinecap="round" />
-      <rect x="63" y="46" width="22" height="15" rx="4" fill="#16a34a" transform="rotate(22 74 53)" />
-      <circle cx="88" cy="38" r="3.5" fill="#38bdf8" />
-      <circle cx="94" cy="49" r="3.5" fill="#38bdf8" />
-      <circle cx="88" cy="60" r="3.5" fill="#38bdf8" />
+      {/* coiled hose */}
+      <path d="M12 84 Q8 40 40 34 Q66 30 60 54" stroke="#22c55e" strokeWidth="10" fill="none" strokeLinecap="round" />
+      {/* spray-gun handle */}
+      <rect x="56" y="44" width="26" height="14" rx="5" fill="#16a34a" transform="rotate(24 69 51)" />
+      <rect x="66" y="54" width="12" height="18" rx="4" fill="#15803d" transform="rotate(24 72 63)" />
+      {/* water droplets */}
+      <circle cx="90" cy="34" r="3.5" fill="#38bdf8" />
+      <circle cx="96" cy="46" r="3.5" fill="#38bdf8" />
+      <circle cx="88" cy="56" r="3.5" fill="#38bdf8" />
     </svg>
   )
 }
@@ -46,8 +58,12 @@ export function HoseIcon({ className }: IconProps) {
 export function HammerIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <rect x="44" y="34" width="13" height="56" rx="5" fill="#a16207" transform="rotate(35 50.5 62)" />
-      <rect x="20" y="12" width="48" height="26" rx="6" fill="#78716c" stroke="#44403c" strokeWidth="3" />
+      {/* diagonal handle */}
+      <rect x="18" y="59" width="58" height="13" rx="6" fill="#a16207" transform="rotate(-38 47 65)" />
+      {/* head */}
+      <rect x="56" y="16" width="34" height="26" rx="5" fill="#71717a" stroke="#3f3f46" strokeWidth="3" />
+      {/* claw notch */}
+      <path d="M56 18 Q44 18 44 29 Q44 40 56 40" fill="none" stroke="#3f3f46" strokeWidth="4" />
     </svg>
   )
 }

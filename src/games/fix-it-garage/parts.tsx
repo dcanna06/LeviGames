@@ -138,9 +138,11 @@ export function SpoilerPart({ color }: { color: SpoilerColor }) {
       transition={{ type: 'spring', stiffness: 420, damping: 14 }}
       style={{ transformOrigin: '75px 45px' }}
     >
-      <rect x="35" y="35" width="80" height="14" rx="6" fill={SPOILER_FILL[color]} />
-      <rect x="45" y="49" width="10" height="18" fill={SPOILER_FILL[color]} />
-      <rect x="95" y="49" width="10" height="18" fill={SPOILER_FILL[color]} />
+      {/* angled struts mounting the wing to the trunk */}
+      <path d="M50,63 L58,38 L64,38 L59,63 Z" fill={SPOILER_FILL[color]} />
+      <path d="M100,63 L92,38 L86,38 L91,63 Z" fill={SPOILER_FILL[color]} />
+      {/* tapered aerodynamic wing blade */}
+      <path d="M28,38 Q75,22 122,38 L122,46 Q75,32 28,46 Z" fill={SPOILER_FILL[color]} />
     </motion.g>
   )
 }
@@ -164,9 +166,9 @@ export function FlagPart({ color }: { color: FlagColor }) {
 export function SpoilerIcon({ color, className }: { color: SpoilerColor; className?: string }) {
   return (
     <svg viewBox="0 0 100 100" className={className} aria-hidden="true">
-      <rect x="15" y="55" width="70" height="16" rx="7" fill={SPOILER_FILL[color]} />
-      <rect x="25" y="71" width="10" height="18" fill={SPOILER_FILL[color]} />
-      <rect x="65" y="71" width="10" height="18" fill={SPOILER_FILL[color]} />
+      <path d="M22,66 L30,40 L36,40 L30,66 Z" fill={SPOILER_FILL[color]} />
+      <path d="M78,66 L70,40 L64,40 L70,66 Z" fill={SPOILER_FILL[color]} />
+      <path d="M8,40 Q50,24 92,40 L92,49 Q50,35 8,49 Z" fill={SPOILER_FILL[color]} />
     </svg>
   )
 }
