@@ -126,15 +126,15 @@ function MemoryCardTile({ card, index, isFaceUp, onSelect, registerRef }: Memory
         transition={{ duration: 0.45, ease: 'easeInOut' }}
       >
         <div
-          className={`absolute inset-0 flex items-center justify-center rounded-[1.75rem] shadow-lg ${
-            card.matched ? 'bg-gradient-to-br from-emerald-300 to-emerald-400 ring-4 ring-emerald-200' : 'bg-gradient-to-br from-rose-300 to-pink-400'
-          }`}
+          className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] bg-gradient-to-br from-rose-300 to-pink-400 shadow-lg"
           style={{ backfaceVisibility: 'hidden' }}
         >
           <CardBackPattern />
         </div>
         <div
-          className="absolute inset-0 flex items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-lg"
+          className={`absolute inset-0 flex items-center justify-center rounded-[1.75rem] bg-white p-4 shadow-lg ${
+            card.matched ? 'ring-[6px] ring-emerald-300' : ''
+          }`}
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
           <Icon className="h-full w-full" />
