@@ -7,8 +7,10 @@ import { Confetti } from '../../shared/Confetti'
 import { useProgress } from '../../shared/useProgress'
 import { sfx, unlockAudio } from '../../shared/audio'
 import { CheckeredFlagIcon } from './icons'
-import { GarageBackdrop, VEHICLE_BODIES, VEHICLE_TYPES, type VehicleType } from './vehicles'
-import { Mechanic, ToolChest } from './mechanic'
+import { SceneDefs } from './defs'
+import { Ambience, GarageBackdrop, VEHICLE_BODIES, VEHICLE_GLASS, VEHICLE_TYPES, type VehicleType } from './vehicles'
+import { Mechanic, ToolChest, type MechanicJob } from './mechanic'
+import { Burst, BURST_LIFETIME, BURST_ORIGINS, type BurstDef, type BurstKind } from './effects'
 import {
   WheelPart,
   TirePart,
@@ -18,19 +20,27 @@ import {
   DecalPart,
   WingIcon,
   DecalIcon,
+  SpareWheel,
   PART_ITEMS,
   type PartItemDef,
+  type Spin,
   type WingColor,
   type DecalColor,
 } from './parts'
-import { TOOLS, type ToolDef } from './tools'
-import { ALL_PROBLEMS, ZONES, zoneStyle, VIEW_W, VIEW_H, type ProblemKey } from './layout'
+import { TOOLS, ToolDefs, type ToolDef, type ToolId } from './tools'
+import { ALL_PROBLEMS, ANCHORS, DECK_Y, NOSE_X, TAIL_X, ZONES, zoneStyle, VIEW_W, VIEW_H, type ProblemKey } from './layout'
 
 /**
  * Fix-It Garage: a car sits on the lift with 2-4 broken parts and a mechanic
  * standing by. Drag the matching tool onto a broken part to fix it (the wrong
  * tool simply does nothing — no penalty, just try again). A parts tray adds
  * cosmetic extras, and the checkered flag sends the car off at any time.
+ *
+ * Feedback is layered the way games do it: the part changes instantly, a
+ * particle burst fires at the spot, the car body reacts (a squash from the
+ * hammer, a suspension drop when the wheel goes on), the mechanic walks over
+ * and works the part with the right tool, and the sound plays — all on top of
+ * the confetti every game shares.
  *
  * Deviation from the spec: "hood popped open" is skipped as a problem type
  * since the spec gives it no matching tool or sound; only the four clearly
@@ -39,13 +49,29 @@ import { ALL_PROBLEMS, ZONES, zoneStyle, VIEW_W, VIEW_H, type ProblemKey } from 
 
 type DriveState = 'idle' | 'rev' | 'out' | 'in'
 
+type JoltKind = 'none' | 'hammer' | 'wrench' | 'pump' | 'land'
+type Jolt = { id: number; kind: JoltKind }
+
+const REV_MS = 420
+const OUT_MS = 750
+const IN_MS = 800
+const JOB_MS = 1700
+
+/** Optional QA overrides on the hash route, e.g. #/fix-it-garage?vehicle=car&problems=all */
+function readQuery(): URLSearchParams {
+  return new URLSearchParams(window.location.hash.split('?')[1] ?? '')
+}
+
 function randomVehicleType(): VehicleType {
+  const forced = readQuery().get('vehicle') as VehicleType | null
+  if (forced && VEHICLE_TYPES.includes(forced)) return forced
   return VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)]
 }
 
 function randomFixedState(): Record<ProblemKey, boolean> {
+  const all = readQuery().get('problems') === 'all'
   const shuffled = [...ALL_PROBLEMS].sort(() => Math.random() - 0.5)
-  const count = 2 + Math.floor(Math.random() * 3)
+  const count = all ? ALL_PROBLEMS.length : 2 + Math.floor(Math.random() * 3)
   const active = new Set(shuffled.slice(0, count))
   const fixed = {} as Record<ProblemKey, boolean>
   ALL_PROBLEMS.forEach((problem) => {
@@ -66,6 +92,16 @@ function pointInZone(point: { x: number; y: number }, ref: RefObject<HTMLDivElem
   )
 }
 
+const JOLT_ANIMATION: Record<JoltKind, { animate: Record<string, number[]>; duration: number }> = {
+  none: { animate: {}, duration: 0 },
+  hammer: { animate: { scaleX: [1, 0.985, 1.01, 1], scaleY: [1, 0.94, 1.02, 1], x: [0, -5, 2, 0] }, duration: 0.45 },
+  wrench: { animate: { y: [0, 6, -3, 1, 0] }, duration: 0.6 },
+  pump: { animate: { y: [0, -5, 2, 0] }, duration: 0.5 },
+  land: { animate: { y: [0, 5, -2, 0], scaleY: [1, 0.96, 1.01, 1] }, duration: 0.55 },
+}
+
+const JOLT_BY_TOOL: Record<ToolId, JoltKind> = { hammer: 'hammer', wrench: 'wrench', pump: 'pump', hose: 'none' }
+
 type DraggableItemProps = {
   ariaLabel: string
   bg: string
@@ -84,7 +120,7 @@ function DraggableItem({ ariaLabel, bg, onDrop, children }: DraggableItemProps) 
       dragElastic={0.2}
       dragMomentum={false}
       whileTap={{ scale: 0.92 }}
-      whileDrag={{ scale: 1.12, zIndex: 50 }}
+      whileDrag={{ scale: 1.15, rotate: -6, zIndex: 50, boxShadow: '0 18px 30px rgba(15, 23, 42, 0.35)' }}
       onDragEnd={(_event, info: PanInfo) => onDrop(info.point)}
       className="flex h-24 w-24 shrink-0 touch-none select-none items-center justify-center rounded-[1.75rem] shadow-lg"
       style={{ backgroundColor: bg }}
@@ -105,10 +141,13 @@ export function FixItGarageGame() {
   const [driveState, setDriveState] = useState<DriveState>('idle')
   const [confettiTrigger, setConfettiTrigger] = useState(0)
   const [confettiOrigin, setConfettiOrigin] = useState({ x: 50, y: 50 })
-  const [fixPulse, setFixPulse] = useState(0)
+  const [bursts, setBursts] = useState<BurstDef[]>([])
+  const [jolt, setJolt] = useState<Jolt>({ id: 0, kind: 'none' })
+  const [job, setJob] = useState<MechanicJob | null>(null)
 
   const driveStateRef = useRef<DriveState>('idle')
   const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([])
+  const nextIdRef = useRef(1)
 
   const wheelZoneRef = useRef<HTMLDivElement>(null)
   const tireZoneRef = useRef<HTMLDivElement>(null)
@@ -122,6 +161,34 @@ export function FixItGarageGame() {
       timeoutsRef.current.forEach(clearTimeout)
     }
   }, [])
+
+  const later = useCallback((fn: () => void, ms: number) => {
+    timeoutsRef.current.push(setTimeout(fn, ms))
+  }, [])
+
+  const spawnBurst = useCallback(
+    (kind: BurstKind, x: number, y: number) => {
+      const id = nextIdRef.current++
+      setBursts((prev) => [...prev, { id, kind, x, y }])
+      later(() => setBursts((prev) => prev.filter((b) => b.id !== id)), BURST_LIFETIME[kind])
+    },
+    [later],
+  )
+
+  const jolCar = useCallback((kind: JoltKind) => {
+    if (kind === 'none') return
+    setJolt({ id: nextIdRef.current++, kind })
+  }, [])
+
+  /** Send the mechanic to a part with a tool; she walks back once the job is done. */
+  const dispatchMechanic = useCallback(
+    (tool: ToolId, x: number, y: number) => {
+      const id = nextIdRef.current++
+      setJob({ id, tool, x, y })
+      later(() => setJob((current) => (current?.id === id ? null : current)), JOB_MS)
+    },
+    [later],
+  )
 
   const getProblemZoneRef = useCallback((problem: ProblemKey): RefObject<HTMLDivElement | null> => {
     if (problem === 'wheel') return wheelZoneRef
@@ -141,23 +208,27 @@ export function FixItGarageGame() {
     setConfettiTrigger((n) => n + 1)
   }, [])
 
-  /** Rev bounce, honk, drive off screen, then roll a fresh vehicle in. */
+  /** Rev (anticipation), launch with tyre smoke, then roll a fresh vehicle in and settle it. */
   const driveOff = useCallback(() => {
     if (driveStateRef.current !== 'idle') return
     driveStateRef.current = 'rev'
     setDriveState('rev')
+    setJob(null)
     unlockAudio()
     sfx.honk()
     void addSticker()
     setConfettiOrigin({ x: 50, y: 45 })
     setConfettiTrigger((n) => n + 1)
+    spawnBurst('exhaust', BURST_ORIGINS.exhaust.x, BURST_ORIGINS.exhaust.y)
+    later(() => spawnBurst('exhaust', BURST_ORIGINS.exhaust.x, BURST_ORIGINS.exhaust.y), 180)
 
-    const t1 = setTimeout(() => {
+    later(() => {
       driveStateRef.current = 'out'
       setDriveState('out')
-    }, 280)
+      spawnBurst('launch', BURST_ORIGINS.launch.x, BURST_ORIGINS.launch.y)
+    }, REV_MS)
 
-    const t2 = setTimeout(() => {
+    later(() => {
       setVehicleType(randomVehicleType())
       setFixed(randomFixedState())
       setWingColor(null)
@@ -165,84 +236,103 @@ export function FixItGarageGame() {
       setVehicleKey((k) => k + 1)
       driveStateRef.current = 'in'
       setDriveState('in')
-    }, 280 + 650)
+    }, REV_MS + OUT_MS)
 
-    const t3 = setTimeout(() => {
+    later(() => {
       driveStateRef.current = 'idle'
       setDriveState('idle')
-    }, 280 + 650 + 600)
+      spawnBurst('land', BURST_ORIGINS.land.x, BURST_ORIGINS.land.y)
+      jolCar('land')
+    }, REV_MS + OUT_MS + IN_MS)
+  }, [addSticker, later, spawnBurst, jolCar])
 
-    timeoutsRef.current.push(t1, t2, t3)
-  }, [addSticker])
-
-  // Auto drive-off once every problem on this vehicle is fixed.
+  // Auto drive-off once every problem on this vehicle is fixed — after a beat,
+  // so the last repair's burst and the mechanic's swing get to play.
   useEffect(() => {
     const allFixed = ALL_PROBLEMS.every((problem) => fixed[problem])
     if (allFixed && driveStateRef.current === 'idle') {
-      driveOff()
+      const t = setTimeout(driveOff, 1400)
+      return () => clearTimeout(t)
     }
   }, [fixed, driveOff])
 
   const handleToolDrop = useCallback(
     (tool: ToolDef, point: { x: number; y: number }) => {
       if (fixed[tool.problem]) return
+      if (driveStateRef.current !== 'idle') return
       const zoneRef = getProblemZoneRef(tool.problem)
       if (!pointInZone(point, zoneRef)) return
       unlockAudio()
       sfx[tool.sound]()
       setFixed((prev) => ({ ...prev, [tool.problem]: true }))
-      setFixPulse((n) => n + 1)
+      const anchor = ANCHORS[tool.problem]
+      spawnBurst(tool.id, anchor.x, anchor.y)
+      jolCar(JOLT_BY_TOOL[tool.id])
+      dispatchMechanic(tool.id, anchor.x, anchor.y)
+      // follow-through: a second, smaller burst as the mechanic gets there
+      later(() => spawnBurst('attach', anchor.x, anchor.y), 620)
       fireConfettiAt(zoneRef)
     },
-    [fixed, getProblemZoneRef, fireConfettiAt],
+    [fixed, getProblemZoneRef, fireConfettiAt, spawnBurst, jolCar, dispatchMechanic, later],
   )
 
-  const handlePartDrop = useCallback((item: PartItemDef, point: { x: number; y: number }) => {
-    if (item.kind === 'wing') {
-      if (!pointInZone(point, wingZoneRef)) return
-      unlockAudio()
-      sfx.partClick()
-      setWingColor(item.color)
-    } else {
-      if (!pointInZone(point, decalZoneRef)) return
-      unlockAudio()
-      sfx.partClick()
-      setDecalColor(item.color)
-    }
-    setFixPulse((n) => n + 1)
-  }, [])
+  const handlePartDrop = useCallback(
+    (item: PartItemDef, point: { x: number; y: number }) => {
+      if (driveStateRef.current !== 'idle') return
+      if (item.kind === 'wing') {
+        if (!pointInZone(point, wingZoneRef)) return
+        unlockAudio()
+        sfx.partClick()
+        setWingColor(item.color)
+        spawnBurst('attach', ANCHORS.wing.x, ANCHORS.wing.y)
+        dispatchMechanic('wrench', ANCHORS.wing.x, ANCHORS.wing.y + 30)
+      } else {
+        if (!pointInZone(point, decalZoneRef)) return
+        unlockAudio()
+        sfx.partClick()
+        setDecalColor(item.color)
+        spawnBurst('attach', ANCHORS.decal.x, ANCHORS.decal.y)
+      }
+    },
+    [spawnBurst, dispatchMechanic],
+  )
 
   const removeWing = useCallback(() => {
     if (!wingColor) return
     unlockAudio()
     sfx.partPop()
     setWingColor(null)
-  }, [wingColor])
+    spawnBurst('pop', ANCHORS.wing.x, ANCHORS.wing.y)
+  }, [wingColor, spawnBurst])
 
   const removeDecal = useCallback(() => {
     if (!decalColor) return
     unlockAudio()
     sfx.partPop()
     setDecalColor(null)
-  }, [decalColor])
+    spawnBurst('pop', ANCHORS.decal.x, ANCHORS.decal.y)
+  }, [decalColor, spawnBurst])
 
   const Body = VEHICLE_BODIES[vehicleType]
+  const spin: Spin = driveState === 'out' ? 'out' : driveState === 'in' ? 'in' : 'none'
 
   const carAnimate =
     driveState === 'rev'
-      ? { x: [0, -10, 10, -6, 0], scale: [1, 1.03, 1, 1.02, 1] }
+      ? { x: [0, -10, 6, -8, 4, 0], y: [0, 2, 0, 2, 0, 0], rotate: [0, -0.8, 0, -0.6, 0, 0] }
       : driveState === 'out'
-        ? { x: 620 }
-        : { x: 0 }
+        ? { x: 640, y: 0, rotate: -1.5 }
+        : { x: 0, y: 0, rotate: 0 }
 
   const carTransition =
     driveState === 'rev'
-      ? { duration: 0.28, ease: 'easeInOut' as const }
+      ? { duration: REV_MS / 1000, ease: 'easeInOut' as const }
       : driveState === 'out'
-        ? { duration: 0.65, ease: 'easeIn' as const }
+        ? { duration: OUT_MS / 1000, ease: [0.6, 0, 1, 0.4] as const }
         : driveState === 'in'
-          ? { type: 'spring' as const, stiffness: 120, damping: 16 }
+          ? { duration: IN_MS / 1000, ease: [0, 0.6, 0.3, 1] as const }
           : { type: 'spring' as const, stiffness: 200, damping: 22 }
+
+  const joltDef = JOLT_ANIMATION[jolt.kind]
 
   return (
     <GameShell bgClassName="bg-orange-100">
@@ -263,23 +353,45 @@ export function FixItGarageGame() {
           <div className="relative w-full" style={{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }}>
             <svg
               viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-              className="absolute inset-0 h-full w-full overflow-hidden rounded-[1.5rem]"
+              className="absolute inset-0 h-full w-full overflow-hidden rounded-[1.5rem] shadow-xl"
               preserveAspectRatio="xMidYMid meet"
             >
+              <SceneDefs />
+              <ToolDefs />
               <GarageBackdrop />
+              <Ambience />
               <ToolChest />
+              {!fixed.wheel && driveState === 'idle' && <SpareWheel />}
 
-              <motion.g key={vehicleKey} initial={driveState === 'in' ? { x: -620 } : false} animate={carAnimate} transition={carTransition}>
-                <Body />
-                <BumperPart ok={fixed.bumper} />
-                <WindshieldPart ok={fixed.windshield} />
-                {wingColor && <WingPart color={wingColor} />}
-                {decalColor && <DecalPart color={decalColor} />}
-                <WheelPart ok={fixed.wheel} />
-                <TirePart ok={fixed.tire} />
+              <motion.g
+                key={vehicleKey}
+                initial={driveState === 'in' ? { x: -640, y: 0, rotate: 0 } : false}
+                animate={carAnimate}
+                transition={carTransition}
+                style={{ transformOrigin: `${(TAIL_X + NOSE_X) / 2}px ${DECK_Y}px` }}
+              >
+                <motion.g
+                  key={jolt.id}
+                  initial={false}
+                  animate={joltDef.animate}
+                  transition={{ duration: joltDef.duration, ease: 'easeOut' }}
+                  style={{ transformOrigin: `${(TAIL_X + NOSE_X) / 2}px ${DECK_Y}px` }}
+                >
+                  <Body />
+                  <BumperPart ok={fixed.bumper} />
+                  <WindshieldPart ok={fixed.windshield} glassPath={VEHICLE_GLASS[vehicleType]} />
+                  {wingColor && <WingPart color={wingColor} />}
+                  {decalColor && <DecalPart color={decalColor} />}
+                  <WheelPart ok={fixed.wheel} spin={spin} />
+                  <TirePart ok={fixed.tire} spin={spin} />
+                </motion.g>
               </motion.g>
 
-              <Mechanic pulse={fixPulse} />
+              <Mechanic job={job} />
+
+              {bursts.map((b) => (
+                <Burst key={b.id} {...b} />
+              ))}
             </svg>
 
             <div ref={wheelZoneRef} className="pointer-events-none absolute" style={zoneStyle(ZONES.wheel)} />
